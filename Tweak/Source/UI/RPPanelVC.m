@@ -12,7 +12,7 @@
 #import "RPAppRelaunch.h"
 #import <PhotosUI/PhotosUI.h>
 
-@interface RPPanelVC () <UITableViewDataSource, UITableViewDelegate, PHPickerViewControllerDelegate>
+@interface RPPanelVC () <UITableViewDataSource, UITableViewDelegate>
 @property (nonatomic, strong) UITableView *table;
 @property (nonatomic, strong) NSArray<RPContainer*> *containers;
 @end
