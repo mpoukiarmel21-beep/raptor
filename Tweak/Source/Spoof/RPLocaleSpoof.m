@@ -43,12 +43,6 @@ static CFTimeZoneRef rp_CFTimeZoneCopyDefault(void) {
 }
 @end
 
-static void RPSwizzleClass(Class cls, SEL sel, id (^block)(id)) {
-    Method m = class_getInstanceMethod(cls, sel);
-    if (!m) return;
-    IMP imp = imp_implementationWithBlock(^id(id _self){ return block(_self); });
-    method_setImplementation(m, imp);
-}
 static void RPSwizzleClassMethod(Class cls, SEL sel, id (^block)(id)) {
     Method m = class_getClassMethod(cls, sel);
     if (!m) return;
