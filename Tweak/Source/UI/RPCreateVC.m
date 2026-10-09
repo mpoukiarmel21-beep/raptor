@@ -42,6 +42,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.overrideUserInterfaceStyle=UIUserInterfaceStyleDark;
     self.title=_editing ? RPLL(@"create.edit",@"Modifier") : RPLL(@"create.title",@"Nouveau conteneur");
     self.view.backgroundColor=[RPTheme panelBackground]; self.tableView.backgroundColor=[RPTheme panelBackground];
     self.navigationItem.rightBarButtonItem=[[UIBarButtonItem alloc] initWithTitle:RPLL(@"create.save",@"Enregistrer") style:UIBarButtonItemStyleDone target:self action:@selector(save)];
@@ -53,13 +54,37 @@
 
 - (UITableViewCell*)tableView:(UITableView*)tv cellForRowAtIndexPath:(NSIndexPath*)ip {
     UITableViewCell *cell=[tv dequeueReusableCellWithIdentifier:@"c"];
-    if(!cell) cell=[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"c"];
-    cell.backgroundColor=[RPTheme glassFill]; cell.textLabel.textColor=[RPTheme primaryText]; cell.detailTextLabel.textColor=[RPTheme secondaryText];
-    cell.accessoryType=UITableViewCellAccessoryDisclosureIndicator; cell.tintColor=[RPTheme accent];
+    if(!cell){
+        cell=[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"c"];
+        cell.backgroundView=[[UIView alloc] init];
+        cell.backgroundView.backgroundColor=[RPTheme glassFill];
+        cell.backgroundView.layer.cornerRadius=14; cell.backgroundView.clipsToBounds=YES;
+        cell.backgroundView.layer.borderColor=[RPTheme glassStroke].CGColor; cell.backgroundView.layer.borderWidth=1;
+        cell.selectedBackgroundView=[[UIView alloc] init];
+        cell.selectedBackgroundView.backgroundColor=[UIColor colorWithWhite:1 alpha:0.06];
+    }
+    // always reset
+    cell.textLabel.textColor=[RPTheme primaryText];
+    cell.detailTextLabel.textColor=[RPTheme secondaryText];
+    cell.tintColor=[RPTheme accent];
+    cell.accessoryType=UITableViewCellAccessoryDisclosureIndicator;
+    cell.accessoryView=nil;
+    cell.backgroundColor=[UIColor clearColor];
     switch(ip.row){
         case 0: {
-            cell.textLabel.text=RPLL(@"create.name",@"Nom du conteneur"); cell.accessoryType=UITableViewCellAccessoryNone;
-            if(!_nameField){ _nameField=[[UITextField alloc] initWithFrame:CGRectMake(0,0,160,30)]; _nameField.placeholder=RPLL(@"create.name.ph",@"ex : Perso"); _nameField.text=_editing.name; _nameField.textAlignment=NSTextAlignmentRight; _nameField.delegate=self; _nameField.returnKeyType=UIReturnKeyDone; }
+            cell.textLabel.text=RPLL(@"create.name",@"Nom du conteneur");
+            cell.accessoryType=UITableViewCellAccessoryNone;
+            cell.detailTextLabel.text=nil;
+            if(!_nameField){
+                _nameField=[[UITextField alloc] initWithFrame:CGRectMake(0,0,170,30)];
+                _nameField.placeholder=RPLL(@"create.name.ph",@"ex : Perso");
+                _nameField.text=_editing.name;
+                _nameField.textColor=[RPTheme primaryText];
+                _nameField.attributedPlaceholder=[[NSAttributedString alloc] initWithString:_nameField.placeholder attributes:@{NSForegroundColorAttributeName:[RPTheme secondaryText]}];
+                _nameField.textAlignment=NSTextAlignmentRight;
+                _nameField.delegate=self; _nameField.returnKeyType=UIReturnKeyDone;
+                _nameField.font=[UIFont systemFontOfSize:15];
+            }
             cell.accessoryView=_nameField;
             break;
         }
@@ -73,35 +98,53 @@
 
 - (void)tableView:(UITableView*)tv didSelectRowAtIndexPath:(NSIndexPath*)ip {
     [tv deselectRowAtIndexPath:ip animated:YES];
-    if(ip.row==0) { [_nameField becomeFirstResponder]; return; }
+    if(ip.row==0){ [_nameField becomeFirstResponder]; return; }
+    __weak typeof(self) weakSelf=self;
     if(ip.row==1){
         NSArray *models=[RPDeviceIdentity modelsForRealChip];
         NSMutableArray *opts=[NSMutableArray array];
         for(NSValue *v in models){ RPDeviceModel m=[RPDeviceIdentity unboxModel:v]; [opts addObject:[RPListOption optionWithValue:m.identifier title:m.marketingName subtitle:[NSString stringWithFormat:@"%@ · %@", m.identifier, m.chipFamily]]]; }
-        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"Modèle" options:opts selectedValue:_chosenModel onPick:^(RPListOption *o){ self->_chosenModel=o.value; self->_chosenMarketing=[RPDeviceIdentity marketingNameForIdentifier:o.value]; [self.tableView reloadData]; }];
+        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"Modèle" options:opts selectedValue:_chosenModel onPick:^(RPListOption *o){
+            __strong typeof(weakSelf) s=weakSelf; if(!s) return;
+            s.chosenModel=o.value; s.chosenMarketing=[RPDeviceIdentity marketingNameForIdentifier:o.value]; [s.tableView reloadData];
+        }];
         [self.navigationController pushViewController:p animated:YES];
     } else if(ip.row==2){
         NSArray *vs=[RPDeviceIdentity iosVersions];
         NSMutableArray *opts=[NSMutableArray array];
         for(NSString *v in vs) [opts addObject:[RPListOption optionWithValue:v title:v subtitle:[RPDeviceIdentity buildForIOSVersion:v]]];
-        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"iOS" options:opts selectedValue:_chosenIOS onPick:^(RPListOption *o){ self->_chosenIOS=o.value; [self.tableView reloadData]; }];
+        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"iOS" options:opts selectedValue:_chosenIOS onPick:^(RPListOption *o){
+            __strong typeof(weakSelf) s=weakSelf; if(!s) return;
+            s.chosenIOS=o.value; [s.tableView reloadData];
+        }];
         [self.navigationController pushViewController:p animated:YES];
     } else if(ip.row==3){
         NSMutableArray *opts=[NSMutableArray array];
         [opts addObject:[RPListOption optionWithValue:@"" title:RPLL(@"panel.auto",@"Automatique") subtitle:nil]];
         for(NSString *c in [RPLocaleSpoof supportedLanguageCodes]) [opts addObject:[RPListOption optionWithValue:c title:[RPLocaleSpoof displayNameForLanguage:c] subtitle:c]];
-        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"Langue" options:opts selectedValue:_appLanguage onPick:^(RPListOption *o){ self.appLanguage=o.value; [self.tableView reloadData]; }];
+        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"Langue" options:opts selectedValue:_appLanguage onPick:^(RPListOption *o){
+            __strong typeof(weakSelf) s=weakSelf; if(!s) return;
+            s.appLanguage=o.value; [s.tableView reloadData];
+        }];
         [self.navigationController pushViewController:p animated:YES];
     } else if(ip.row==4){
         NSMutableArray *opts=[NSMutableArray array];
         [opts addObject:[RPListOption optionWithValue:@"" title:RPLL(@"panel.auto",@"Automatique") subtitle:nil]];
         for(NSString *c in [RPLocaleSpoof supportedRegionCodes]) [opts addObject:[RPListOption optionWithValue:c title:[RPLocaleSpoof displayNameForRegion:c] subtitle:c]];
-        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"Région" options:opts selectedValue:_regionCountry onPick:^(RPListOption *o){ self.regionCountry=o.value; [self.tableView reloadData]; }];
+        RPListPickerVC *p=[[RPListPickerVC alloc] initWithTitle:@"Région" options:opts selectedValue:_regionCountry onPick:^(RPListOption *o){
+            __strong typeof(weakSelf) s=weakSelf; if(!s) return;
+            s.regionCountry=o.value; [s.tableView reloadData];
+        }];
         [self.navigationController pushViewController:p animated:YES];
     }
 }
 
 - (NSString*)tableView:(UITableView*)tv titleForFooterInSection:(NSInteger)s { return @"Modèles limités à la puce réelle (même génération)"; }
+- (void)tableView:(UITableView*)tv willDisplayFooterView:(UIView*)v forSection:(NSInteger)s {
+    if([v isKindOfClass:[UITableViewHeaderFooterView class]]){
+        ((UITableViewHeaderFooterView*)v).textLabel.textColor=[RPTheme secondaryText];
+    }
+}
 
 - (void)save {
     NSString *name=[_nameField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];

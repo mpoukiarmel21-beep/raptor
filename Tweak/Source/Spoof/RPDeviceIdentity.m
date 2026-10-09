@@ -127,12 +127,13 @@ static uint32_t RPSeededIndex(NSString *cid, NSString *tag) {
 }
 
 + (NSArray<NSString *> *)iosVersions {
-    return @[@"26.6.1",@"26.6",@"26.5",@"26.4",@"26.3",@"26.2",@"26.1",@"26.0.1",@"26.0"];
+    // Real recent iOS — no fictional future versions (left real by default, but picker must show credibles)
+    return @[@"18.5",@"18.4.1",@"18.4",@"18.3.1",@"18.3",@"18.2",@"18.1.1",@"18.1",@"18.0",@"17.6.1",@"17.5.1"];
 }
 
 + (NSString *)buildForIOSVersion:(NSString *)v {
-    NSDictionary *map = @{@"26.6.1":@"23G83",@"26.6":@"23G71",@"26.5":@"23F84",@"26.4":@"23E238",@"26.3":@"23D60",@"26.2":@"23C55",@"26.1":@"23B74",@"26.0.1":@"23A348",@"26.0":@"23A340"};
-    return map[v] ?: @"23G83";
+    NSDictionary *map = @{@"18.5":@"22F76",@"18.4.1":@"22E772",@"18.4":@"22E240",@"18.3.1":@"22D72",@"18.3":@"22D63",@"18.2":@"22C152",@"18.1.1":@"22B91",@"18.1":@"22B83",@"18.0":@"22A3354",@"17.6.1":@"21G101",@"17.5.1":@"21F90"};
+    return map[v] ?: @"22F76";
 }
 
 + (NSString *)seededIOSVersionForCID:(NSString *)cid {
