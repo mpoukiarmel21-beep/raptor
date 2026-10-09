@@ -1,0 +1,9 @@
+*.ipa
+*.dylib
+.theos/
+obj/
+packages/
+.DS_Store
+*.orig
+*.rej
+*.log

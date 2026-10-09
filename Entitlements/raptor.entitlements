@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Raptor — no private entitlements required.
+  Kept empty so Sideloadly re-sign is never rejected by AMFI.
+  Isolation uses setenv(HOME) + kSecAttrService/keychain prefix within
+  the default access group — no extra entitlement.
+-->
+<plist version="1.0"><dict></dict></plist>

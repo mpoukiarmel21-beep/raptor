@@ -1,0 +1,137 @@
+name: Build raptor IPA
+on:
+  workflow_dispatch:
+    inputs:
+      ipa_url:
+        description: "Base IPA: release tag (e.g. v1.0-ipa), direct URL, or Gofile folder code"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Theos
+        run: |
+          set -euo pipefail
+          export THEOS="$HOME/theos"
+          if [ ! -d "$THEOS" ]; then
+            git clone --recursive https://github.com/theos/theos.git "$THEOS"
+          fi
+          if [ ! -d "$THEOS/sdks/master" ]; then
+            curl -fsSLO https://github.com/theos/sdks/archive/master.tar.gz
+            tar -xzf master.tar.gz -C "$THEOS/sdks" --strip-components=1
+            rm master.tar.gz
+          fi
+          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+          echo "$THEOS/bin" >> "$GITHUB_PATH"
+          brew list --versions ldid >/dev/null 2>&1 || brew install ldid
+          if ! command -v insert_dylib >/dev/null 2>&1; then
+            git clone https://github.com/tyilo/insert_dylib.git /tmp/insert_dylib
+            (cd /tmp/insert_dylib && xcodebuild -quiet 2>&1 | tail -n 20)
+            sudo cp /tmp/insert_dylib/build/Release/insert_dylib /usr/local/bin/insert_dylib || cp /tmp/insert_dylib/build/Release/insert_dylib /usr/local/bin/insert_dylib
+            chmod +x /usr/local/bin/insert_dylib
+          fi
+
+      - name: Build Dylib
+        run: |
+          set -euo pipefail
+          export PATH="$THEOS/bin:$PATH"
+          cd Tweak
+          make clean all 2>&1 | tail -n 120
+          DYLIB="$(find .theos/obj -name "*.dylib" -type f | head -n 1)"
+          if [ -z "$DYLIB" ]; then echo "::error::No dylib produced"; exit 1; fi
+          echo "DYLIB=$DYLIB"
+          ls -lh "$DYLIB"
+          otool -L "$DYLIB" | tee /tmp/otool.txt
+          if grep -qi "substrate" /tmp/otool.txt; then echo "::error::CydiaSubstrate linked (must be LIBRARY)"; exit 1; fi
+
+      - name: Download IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          IPA_URL="${{ inputs.ipa_url }}"
+          echo "ipa_url input: $IPA_URL"
+          rm -f Input.ipa
+          if [[ "$IPA_URL" == *gofile.io* ]]; then
+            echo "Gofile mode"
+            FOLDER_CODE="$(echo "$IPA_URL" | sed 's|.*/d/||' | sed 's|/.*||')"
+            echo "folder code: $FOLDER_CODE"
+            python3 "$GITHUB_WORKSPACE/Tweak/download_gofile.py" "$FOLDER_CODE"
+          elif [[ "$IPA_URL" == *github.com*releases*download* ]]; then
+            echo "GitHub release asset URL mode"
+            REPO="$(echo "$IPA_URL" | sed -E 's|https?://github.com/||; s|/releases/download/.*||')"
+            TAG="$(echo "$IPA_URL" | sed -E 's|.*/releases/download/||; s|/[^/]*$||')"
+            ASSET="$(echo "$IPA_URL" | sed -E 's|.*/releases/download/[^/]+/||')"
+            echo "repo=$REPO tag=$TAG asset=$ASSET"
+            gh release download "$TAG" --repo "$REPO" --pattern "$ASSET" -O Input.ipa
+          elif [[ "$IPA_URL" == http* ]]; then
+            echo "Direct URL mode"
+            curl -L -o Input.ipa "$IPA_URL" --connect-timeout 30 --max-time 600 --retry 2
+          else
+            echo "Bare tag mode: $IPA_URL"
+            mkdir -p _dl
+            if gh release download "$IPA_URL" --repo "$GITHUB_REPOSITORY" --pattern "*.ipa" -D _dl 2>&1 | tee /tmp/ghdl.log; then
+              IPA_DL="$(find _dl -name "*.ipa" -type f | head -n 1)"
+              [ -n "$IPA_DL" ] && cp "$IPA_DL" Input.ipa
+            fi
+            if [ ! -f Input.ipa ]; then
+              echo "Fallback: no asset matched bare tag"
+              exit 1
+            fi
+          fi
+          file Input.ipa || true
+          ls -lh Input.ipa
+
+      - name: Inject & Package IPA
+        run: |
+          set -euo pipefail
+          DYLIB="$(find Tweak/.theos/obj -name "*.dylib" -type f | head -n 1)"
+          WORKDIR="$(mktemp -d)"
+          echo "workdir=$WORKDIR dylib=$DYLIB"
+          cp Input.ipa "$WORKDIR/Input.ipa"
+          cd "$WORKDIR"
+          unzip -q Input.ipa
+          APP="$(ls -d Payload/*.app | head -n 1)"
+          BIN="$APP/$(basename "$APP" .app)"
+          if [ ! -f "$BIN" ]; then
+            BIN="$APP/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist" 2>/dev/null || echo Instagram)"
+          fi
+          echo "app=$APP bin=$BIN"
+          mkdir -p "$APP/Frameworks"
+          cp "$GITHUB_WORKSPACE/$DYLIB" "$APP/Frameworks/raptor.dylib"
+          insert_dylib --strip-codesig --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
+          otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
+          for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
+          codesign --force --sign - "$BIN"
+          codesign --verify --verbose "$BIN" 2>&1 | tail -n 20 || true
+          zip -r -X -q "$GITHUB_WORKSPACE/raptor.ipa" Payload/ -x '*.DS_Store'
+
+      - name: Upload IPA (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: raptor-IPA
+          path: raptor.ipa
+          retention-days: 30
+
+      - name: Upload IPA to Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="build-${{ github.run_number }}"
+          REPO="${{ github.repository }}"
+          gh release create "$TAG" --repo "$REPO" --title "Raptor Build ${{ github.run_number }}" --notes "Automated build from run ${{ github.run_number }} — base: ${{ inputs.ipa_url }}" 2>&1 | tail -n 20 || true
+          gh release upload "$TAG" raptor.ipa --repo "$REPO" --clobber
+          echo "DOWNLOAD_URL=https://github.com/$REPO/releases/download/$TAG/raptor.ipa" >> "$GITHUB_ENV"
+
+      - name: Print Download URL
+        run: echo "DOWNLOAD_URL=${{ env.DOWNLOAD_URL }}"
