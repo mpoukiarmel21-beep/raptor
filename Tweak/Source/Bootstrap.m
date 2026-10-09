@@ -4,6 +4,7 @@
 #import <execinfo.h>
 #import <signal.h>
 #import <fcntl.h>
+#import <dlfcn.h>
 #import "Core/RPPaths.h"
 #import "Core/RPContainerStore.h"
 #import "Core/RPContainer.h"
@@ -83,16 +84,18 @@ static void RPInstallCrashLogger(void) {
 
 // ── Home cache bust ────────────────────────────────────────────────
 // Foundation caches NSHomeDirectory() on first call. After we setenv HOME we must bust it.
-extern void _NSSetHomeDirectory(NSString *path); // private Foundation
-
+// _NSSetHomeDirectory is private — resolve via dlsym so the linker doesn't require it.
 static void RPBustHomeCache(NSString *newHome) {
     if (!newHome.length) return;
-    // Private API if available
-    if (&_NSSetHomeDirectory != NULL) {
-        @try { _NSSetHomeDirectory(newHome); } @catch (NSException *e) {}
+    void *handle = dlopen(NULL, RTLD_NOW);
+    if (handle) {
+        typedef void (*SetHomeFn)(NSString *);
+        SetHomeFn fn = (SetHomeFn)dlsym(handle, "_NSSetHomeDirectory");
+        if (fn) {
+            @try { fn(newHome); } @catch (NSException *e) {}
+        }
+        dlclose(handle);
     }
-    // Fallback: swizzle NSHomeDirectory via fishhook-like interpose — inject via method_setImplementation on NSFileManager is not enough.
-    // The setenv + _NSSetHomeDirectory combo covers all real iOS versions where symbol exists.
 }
 
 // ── Stale guard (no exit(0) — suspend instead) ─────────────────────
