@@ -109,17 +109,14 @@ static void RPInstallStaleGuard(void) {
         NSString *cur = [RPContainerStore shared].activeCID;
         if (gBootCID && cur && ![gBootCID isEqualToString:cur]) {
             RPLog(@"stale guard: boot=%@ cur=%@ — suspending for relaunch", gBootCID, cur);
-            // Suspend to home; Bootstrap on next cold launch will pick new container.
-            // Using exit(0) is reported as crash — suspend is clean.
             [[UIApplication sharedApplication] performSelector:@selector(suspend)];
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                exit(0);
-            });
+            // No exit(0) — it is reported as crash and corrupts the next cold launch
+            // (HOME mismatch → spinner blanc). User just re-taps the icon.
         }
     }];
 }
 
-// ── Background re-protect (bounded, autoreleasepool, proper expiry) ──
+// ── Background re-protect: ONLY the active Instance, never the control plane ──
 static void RPInstallBackgroundReprotect(NSString *root) {
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidEnterBackgroundNotification
                                                       object:nil
@@ -128,19 +125,25 @@ static void RPInstallBackgroundReprotect(NSString *root) {
         __block UIBackgroundTaskIdentifier tid = UIBackgroundTaskInvalid;
         tid = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"RPReprotect"
                                                            expirationHandler:^{
-            if (tid != UIBackgroundTaskInvalid) {
-                [[UIApplication sharedApplication] endBackgroundTask:tid];
-                tid = UIBackgroundTaskInvalid;
-            }
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (tid != UIBackgroundTaskInvalid) {
+                    [[UIApplication sharedApplication] endBackgroundTask:tid];
+                    tid = UIBackgroundTaskInvalid;
+                }
+            });
         }];
         if (tid == UIBackgroundTaskInvalid) return;
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             @autoreleasepool {
+                // Re-protect only Instances/<cid> — never Documents/Raptor/*.plist (control plane)
                 [RPPaths reapplyProtectionRecursivelyAtRoot:root];
             }
-            if (tid != UIBackgroundTaskInvalid) {
-                [[UIApplication sharedApplication] endBackgroundTask:tid];
-            }
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (tid != UIBackgroundTaskInvalid) {
+                    [[UIApplication sharedApplication] endBackgroundTask:tid];
+                    tid = UIBackgroundTaskInvalid;
+                }
+            });
         });
     }];
 }

@@ -19,15 +19,35 @@ static CLLocation *RPCurrentFake(void) {
     return [[CLLocation alloc] initWithCoordinate:coord altitude:12 horizontalAccuracy:5 verticalAccuracy:8 course:-1 speed:0 timestamp:[NSDate date]];
 }
 
+// Delivery: must NEVER drop a request. The old dispatch_async broke Instagram's
+// signup NAME validation which fires startUpdatingLocation + requestLocation
+// back-to-back on the same runloop — the second async arrived after timeout → hang.
 static void RPDeliverFake(CLLocationManager *mgr) {
-    if (![NSThread isMainThread]) { dispatch_async(dispatch_get_main_queue(), ^{ RPDeliverFake(mgr); }); return; }
-    if (gInDelivery) return;
+    if (![NSThread isMainThread]) {
+        // Caller off-main may be blocked — sync hop
+        dispatch_sync(dispatch_get_main_queue(), ^{ RPDeliverFake(mgr); });
+        return;
+    }
+    if (gInDelivery) {
+        // Re-entrant (didUpdateLocations → startUpdatingLocation). Don't recurse,
+        // but don't drop: schedule one deferred delivery.
+        CLLocation *fake = RPCurrentFake();
+        id<CLLocationManagerDelegate> del = mgr.delegate;
+        if (fake && [del respondsToSelector:@selector(locationManager:didUpdateLocations:)]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [del locationManager:mgr didUpdateLocations:@[fake]];
+            });
+        }
+        return;
+    }
     id<CLLocationManagerDelegate> del = mgr.delegate;
     CLLocation *fake = RPCurrentFake();
     gInDelivery = YES;
     @try {
         if (fake && [del respondsToSelector:@selector(locationManager:didUpdateLocations:)]) {
             [del locationManager:mgr didUpdateLocations:@[fake]];
+        } else if (fake && [del respondsToSelector:@selector(locationManager:didUpdateToLocation:fromLocation:)]) {
+            [del locationManager:mgr didUpdateToLocation:fake fromLocation:nil];
         } else if ([del respondsToSelector:@selector(locationManager:didFailWithError:)]) {
             NSError *e = [NSError errorWithDomain:kCLErrorDomain code:kCLErrorLocationUnknown userInfo:nil];
             [del locationManager:mgr didFailWithError:e];
