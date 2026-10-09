@@ -49,7 +49,7 @@ static void RPInstallCrashLogger(void) {
     stack_t ss={.ss_sp=gAltStack,.ss_size=sizeof(gAltStack),.ss_flags=0};
     sigaltstack(&ss,NULL);
     struct sigaction sa={}; sa.sa_sigaction=RPSignalHandler; sa.sa_flags=SA_SIGINFO|SA_ONSTACK|SA_RESETHAND; sigemptyset(&sa.sa_mask);
-    for(int s in (int[]){SIGABRT,SIGSEGV,SIGBUS,SIGILL,SIGFPE,SIGSYS}) sigaction(s,&sa,NULL);
+    for(int _i=0,_sigs[]={SIGABRT,SIGSEGV,SIGBUS,SIGILL,SIGFPE,SIGSYS}; _i<6; _i++) sigaction(_sigs[_i],&sa,NULL);
 }
 
 // ── Stale guard ────────────────────────────────────────────────────
