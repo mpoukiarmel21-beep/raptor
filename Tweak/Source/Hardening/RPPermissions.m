@@ -2,7 +2,7 @@
 #import "RPContainer.h"
 #import <objc/runtime.h>
 #import <CoreLocation/CoreLocation.h>
-#import <Photos/Photos.h>
+#import <Photos/PHPhotoLibrary.h>
 #import <AVFoundation/AVFoundation.h>
 
 @implementation RPPermissions

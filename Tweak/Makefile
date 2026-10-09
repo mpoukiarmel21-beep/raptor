@@ -21,6 +21,6 @@ raptor_FILES = \
 raptor_CFLAGS = -fobjc-arc -ISource -ISource/Core -ISource/Isolation -ISource/Hardening -ISource/Spoof -ISource/Camera -ISource/UI -ISource/Util -ISource/vendor \
   -Wno-deprecated-declarations -Wno-unused-variable -Wno-error=unguarded-availability-new
 
-raptor_FRAMEWORKS = UIKit CoreLocation MapKit Security AVFoundation CoreMedia CoreVideo CoreImage ImageIO PhotosUI AdSupport
+raptor_FRAMEWORKS = UIKit CoreLocation MapKit Security AVFoundation CoreMedia CoreVideo CoreImage ImageIO PhotosUI Photos
 
 include $(THEOS_MAKE_PATH)/library.mk
