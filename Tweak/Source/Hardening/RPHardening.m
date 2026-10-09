@@ -1,5 +1,6 @@
 #import "RPHardening.h"
 #import "RPContainer.h"
+#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
 static void RPSetBoolReturn(Class cls, SEL sel, BOOL v) {
@@ -45,7 +46,7 @@ static void RPFailCompletion2(Class cls, SEL sel) {
             IMP orig = method_getImplementation(m);
             typedef NSString* (*Fn)(id,SEL);
             Fn fn = (Fn)orig;
-            method_setImplementation(m, imp_implementationWithBlock(^NSString*(UITextField *_self){
+            method_setImplementation(m, imp_implementationWithBlock(^NSString*(id _self){
                 NSString *origVal = fn(_self, @selector(textContentType));
                 if ([origVal isEqualToString:UITextContentTypeEmailAddress]||
                     [origVal isEqualToString:UITextContentTypeUsername]||
