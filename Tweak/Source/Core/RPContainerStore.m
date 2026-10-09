@@ -206,7 +206,8 @@ NSString * const kRPActiveChanged     = @"kRPActiveChanged";
     NSString *containersFile = [RPPaths containersFile];
     NSString *activeFile = [RPPaths activeFile];
 
-    NSDataWritingOptions opts = NSDataWritingAtomic | NSDataWritingFileProtectionCompleteUntilFirstUserAuthentication;
+    // Control plane must be readable before first unlock (push launch) → None
+    NSDataWritingOptions opts = NSDataWritingAtomic | NSDataWritingFileProtectionNone;
 
     BOOL ok1 = [containersData writeToFile:containersFile options:opts error:error];
     if (!ok1) return NO;

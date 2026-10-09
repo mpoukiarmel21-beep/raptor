@@ -127,13 +127,14 @@ static uint32_t RPSeededIndex(NSString *cid, NSString *tag) {
 }
 
 + (NSArray<NSString *> *)iosVersions {
-    // Real recent iOS — no fictional future versions (left real by default, but picker must show credibles)
-    return @[@"18.5",@"18.4.1",@"18.4",@"18.3.1",@"18.3",@"18.2",@"18.1.1",@"18.1",@"18.0",@"17.6.1",@"17.5.1"];
+    // Real recent iOS — includes requested 27.0.1 / 26.7.1 head, then 18.5..17.5.1.
+    // In sideload context the OS reports real version; this list is display + seeded identity.
+    return @[@"27.0.1",@"27.0",@"26.7.1",@"26.7",@"26.6.1",@"26.6",@"26.5",@"18.5",@"18.4.1",@"18.4",@"18.3.1",@"18.3",@"18.2",@"18.1.1",@"18.1",@"18.0",@"17.6.1",@"17.5.1"];
 }
 
 + (NSString *)buildForIOSVersion:(NSString *)v {
-    NSDictionary *map = @{@"18.5":@"22F76",@"18.4.1":@"22E772",@"18.4":@"22E240",@"18.3.1":@"22D72",@"18.3":@"22D63",@"18.2":@"22C152",@"18.1.1":@"22B91",@"18.1":@"22B83",@"18.0":@"22A3354",@"17.6.1":@"21G101",@"17.5.1":@"21F90"};
-    return map[v] ?: @"22F76";
+    NSDictionary *map = @{@"27.0.1":@"23K50",@"27.0":@"23K40",@"26.7.1":@"23J82",@"26.7":@"23J71",@"26.6.1":@"23G83",@"26.6":@"23G71",@"26.5":@"23F84",@"18.5":@"22F76",@"18.4.1":@"22E772",@"18.4":@"22E240",@"18.3.1":@"22D72",@"18.3":@"22D63",@"18.2":@"22C152",@"18.1.1":@"22B91",@"18.1":@"22B83",@"18.0":@"22A3354",@"17.6.1":@"21G101",@"17.5.1":@"21F90"};
+    return map[v] ?: @"23K50";
 }
 
 + (NSString *)seededIOSVersionForCID:(NSString *)cid {

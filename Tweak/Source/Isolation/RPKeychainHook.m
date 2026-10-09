@@ -4,9 +4,10 @@
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 
-static NSString *gPrefix = nil; // e.g. "RP:<cid>:"
+static NSString *gPrefix = nil; // e.g. "RP:<cid>:" — mutable after first install (switch without relaunch edge)
+static inline void RPSetPrefix(NSString *p) { gPrefix = p; }
 static BOOL gHideMode = NO;
-static BOOL gBound = NO;
+static BOOL gBound = NO; // guards rebind_symbols only
 
 static OSStatus (*orig_SecItemAdd)(CFDictionaryRef, CFTypeRef *) = NULL;
 static OSStatus (*orig_SecItemCopyMatching)(CFDictionaryRef, CFTypeRef *) = NULL;
@@ -320,8 +321,9 @@ static SecKeyRef rp_SecKeyCreateRandomKey(CFDictionaryRef params, CFErrorRef *er
 @implementation RPKeychainHook
 
 + (BOOL)installWithPrefix:(NSString *)prefix {
-    if (gBound) return YES;
-    gPrefix = [prefix copy];
+    // Allow prefix update without rebind — critical for switch without relaunch edge case
+    if (gBound) { RPSetPrefix([prefix copy]); gHideMode = NO; return YES; }
+    RPSetPrefix([prefix copy]);
     gHideMode = NO;
     struct rebinding rebs[] = {
         {"SecItemAdd", rp_SecItemAdd, (void **)&orig_SecItemAdd},
@@ -336,8 +338,8 @@ static SecKeyRef rp_SecKeyCreateRandomKey(CFDictionaryRef params, CFErrorRef *er
 }
 
 + (BOOL)installDefaultHideMode {
-    if (gBound) return YES;
-    gPrefix = nil;
+    if (gBound) { RPSetPrefix(nil); gHideMode = YES; return YES; }
+    RPSetPrefix(nil);
     gHideMode = YES;
     struct rebinding rebs[] = {
         {"SecItemAdd", rp_SecItemAdd, (void **)&orig_SecItemAdd},

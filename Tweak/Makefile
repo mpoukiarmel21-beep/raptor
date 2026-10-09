@@ -11,8 +11,8 @@ raptor_FILES = \
   Source/Bootstrap.m \
   Source/Core/RPPaths.m Source/Core/RPContainer.m Source/Core/RPContainerStore.m \
   Source/Isolation/RPHomeRedirect.m Source/Isolation/RPKeychainHook.m Source/Isolation/RPPrefsHook.m Source/Isolation/RPAppGroupHook.m \
-  Source/Hardening/RPHardening.m Source/Hardening/RPPermissions.m \
-  Source/Spoof/RPDeviceIdentity.m Source/Spoof/RPDeviceSpoof.m Source/Spoof/RPLocaleSpoof.m Source/Spoof/RPLocationSpoof.m \
+  Source/Hardening/RPHardening.m Source/Hardening/RPPermissions.m Source/Hardening/RPPasteboardHook.m Source/Hardening/RPDyldHook.m Source/Hardening/RPJailbreakBypass.m Source/Hardening/RPReceiptHook.m \
+  Source/Spoof/RPDeviceIdentity.m Source/Spoof/RPDeviceSpoof.m Source/Spoof/RPLocaleSpoof.m Source/Spoof/RPLocationSpoof.m Source/Spoof/RPGeoIdentity.m \
   Source/Camera/RPCameraFeed.m Source/Camera/RPCameraHook.m \
   Source/UI/RPTheme.m Source/UI/RPGlass.m Source/UI/RPL10n.m Source/UI/RPActionSheet.m Source/UI/RPFloatingButton.m Source/UI/RPListPickerVC.m Source/UI/RPPanelVC.m Source/UI/RPCreateVC.m Source/UI/RPMapPickerVC.m \
   Source/Util/RPAppRelaunch.m Source/Util/RPDiagnostics.m \
