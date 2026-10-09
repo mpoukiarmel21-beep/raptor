@@ -216,7 +216,7 @@ NSString * const kRPActiveChanged     = @"kRPActiveChanged";
 }
 
 // Public alias expected by spec naming is persistLocked error:
-- (BOOL)persistLocked error:(NSError **)error {
+- (BOOL)persistLocked:(NSError **)error {
     return [self persistLockedError:error];
 }
 
