@@ -32,7 +32,7 @@
     UIBarButtonItem *plus=[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(create)];
     // lang toggle
     UISegmentedControl *seg=[[UISegmentedControl alloc] initWithItems:@[@"FR",@"EN"]];
-    seg.selectedSegmentIndex=[[RPLang() isEqualToString:@"en"]?@"en":@"fr" isEqualToString:@"en"]?1:0;
+    seg.selectedSegmentIndex=[RPLang() isEqualToString:@"en"] ? 1 : 0;
     seg.frame=CGRectMake(0,0,70,26);
     [seg addTarget:self action:@selector(langChanged:) forControlEvents:UIControlEventValueChanged];
     seg.selectedSegmentTintColor=[RPTheme accent];
