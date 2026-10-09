@@ -18,7 +18,7 @@ raptor_FILES = \
   Source/Util/RPAppRelaunch.m Source/Util/RPDiagnostics.m \
   Source/vendor/fishhook/fishhook.c
 
-raptor_CFLAGS = -fobjc-arc -ISource -ISource/Core -ISource/Isolation -ISource/Hardening -ISource/Spoof -ISource/Camera -ISource/UI -ISource/Util -ISource/vendor \
+raptor_CFLAGS = -fobjc-arc -ISource -ISource/Core -ISource/Isolation -ISource/Hardening -ISource/Spoof -ISource/Camera -ISource/UI -ISource/Util -ISource/vendor -ISource/vendor/fishhook \
   -Wno-deprecated-declarations -Wno-unused-variable -Wno-error=unguarded-availability-new
 
 raptor_FRAMEWORKS = UIKit CoreLocation MapKit Security AVFoundation CoreMedia CoreVideo CoreImage ImageIO PhotosUI Photos
