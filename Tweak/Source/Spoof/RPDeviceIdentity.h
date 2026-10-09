@@ -20,7 +20,7 @@ typedef struct {
 + (NSString *)seededIOSVersionForCID:(NSString *)cid;
 + (NSString *)serialForCID:(NSString *)cid;
 + (NSString *)modelNumberForCID:(NSString *)cid region:(nullable NSString *)region;
-+ (RPDeviceModel)boxModel:(RPDeviceModel)m;
++ (NSValue *)boxModel:(RPDeviceModel)m;
 + (RPDeviceModel)unboxModel:(NSValue *)v;
 @end
 
