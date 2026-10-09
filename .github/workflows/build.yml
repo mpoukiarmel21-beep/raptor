@@ -1,5 +1,5 @@
 name: Build raptor IPA
-on:
+"on":
   workflow_dispatch:
     inputs:
       ipa_url:
