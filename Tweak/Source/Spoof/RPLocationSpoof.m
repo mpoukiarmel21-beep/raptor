@@ -47,7 +47,8 @@ static void RPDeliverFake(CLLocationManager *mgr) {
         if (fake && [del respondsToSelector:@selector(locationManager:didUpdateLocations:)]) {
             [del locationManager:mgr didUpdateLocations:@[fake]];
         } else if (fake && [del respondsToSelector:@selector(locationManager:didUpdateToLocation:fromLocation:)]) {
-            [del locationManager:mgr didUpdateToLocation:fake fromLocation:nil];
+            CLLocation *empty = [[CLLocation alloc] initWithLatitude:0 longitude:0];
+            [del locationManager:mgr didUpdateToLocation:fake fromLocation:empty];
         } else if ([del respondsToSelector:@selector(locationManager:didFailWithError:)]) {
             NSError *e = [NSError errorWithDomain:kCLErrorDomain code:kCLErrorLocationUnknown userInfo:nil];
             [del locationManager:mgr didFailWithError:e];
