@@ -2,5 +2,5 @@
 NS_ASSUME_NONNULL_BEGIN
 @interface RPPanelVC : UIViewController
 @end
-// Forward: RPPanelVC implements PHPickerViewControllerDelegate via category below
+NS_ASSUME_NONNULL_END
 
