@@ -105,13 +105,17 @@ static void RPSwizzleClassMethod(Class cls, SEL sel, id (^block)(id)) {
         RPSwizzleClassMethod([NSTimeZone class], @selector(localTimeZone), ^id(id _s){ return tz(_s); });
         RPSwizzleClassMethod([NSTimeZone class], @selector(defaultTimeZone), ^id(id _s){ return tz(_s); });
     }
-    // fishhook CFLocale/CFTimeZone
-    struct rebinding rbs[] = {
-        {"CFLocaleCopyCurrent", rp_CFLocaleCopyCurrent, (void**)&orig_CFLocaleCopyCurrent},
-        {"CFTimeZoneCopySystem", rp_CFTimeZoneCopySystem, (void**)&orig_CFTimeZoneCopySystem},
-        {"CFTimeZoneCopyDefault", rp_CFTimeZoneCopyDefault, (void**)&orig_CFTimeZoneCopyDefault},
-    };
-    rebind_symbols(rbs, 3);
+    // fishhook — guard against double rebind (second call would make orig point to shim → recursion)
+    static BOOL gLocaleHooked = NO;
+    if (!gLocaleHooked) {
+        struct rebinding rbs[] = {
+            {"CFLocaleCopyCurrent", rp_CFLocaleCopyCurrent, (void**)&orig_CFLocaleCopyCurrent},
+            {"CFTimeZoneCopySystem", rp_CFTimeZoneCopySystem, (void**)&orig_CFTimeZoneCopySystem},
+            {"CFTimeZoneCopyDefault", rp_CFTimeZoneCopyDefault, (void**)&orig_CFTimeZoneCopyDefault},
+        };
+        rebind_symbols(rbs, 3);
+        gLocaleHooked = YES;
+    }
 }
 
 + (NSArray<NSString *> *)supportedLanguageCodes { return @[@"en",@"fr",@"es",@"pt",@"de",@"it",@"nl",@"ar",@"ru",@"tr",@"hi",@"id",@"th",@"vi",@"pl",@"sv",@"ja",@"ko",@"zh-Hans",@"zh-Hant"]; }

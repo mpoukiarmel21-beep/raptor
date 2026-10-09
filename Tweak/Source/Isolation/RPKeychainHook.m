@@ -166,43 +166,19 @@ static OSStatus rp_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result)
         return st;
     }
 
-    // namespace mode
+    // namespace mode — field-less query would scan entire keychain (Safari included) → ANR watchdog
     if (field) {
         if (RPIsTagField(field)) {
             NSData *orig = m[field];
             if (orig) m[field] = RPPrefixedData(orig);
-            // when field absent on CopyMatching, we do field-less enumeration below
         } else {
             NSString *orig = m[field];
             if (orig.length) m[field] = [gPrefix stringByAppendingString:orig];
             else {
-                // field-less enumeration: discover all then filter
-                OSStatus st = orig_SecItemCopyMatching((__bridge CFDictionaryRef)m, result);
-                if (st != errSecSuccess || !result || !*result) return st;
-                id res = (__bridge id)(*result);
-                if ([res isKindOfClass:[NSArray class]]) {
-                    NSMutableArray *filtered = [NSMutableArray array];
-                    for (NSDictionary *attrs in (NSArray*)res) {
-                        if (![attrs isKindOfClass:[NSDictionary class]]) continue;
-                        if (!RPItemMatchesPrefix(attrs, gPrefix)) continue;
-                        NSMutableDictionary *mu = [attrs mutableCopy];
-                        RPStripFieldsInPlace(mu);
-                        [filtered addObject:[mu copy]];
-                    }
-                    CFRelease(*result);
-                    if (filtered.count == 0) { *result = NULL; return errSecItemNotFound; }
-                    *result = (__bridge_retained CFTypeRef)[filtered copy];
-                    return errSecSuccess;
-                }
-                // single item
-                if ([res isKindOfClass:[NSDictionary class]]) {
-                    if (!RPItemMatchesPrefix((NSDictionary*)res, gPrefix)) { CFRelease(*result); *result = NULL; return errSecItemNotFound; }
-                    NSMutableDictionary *mu = [(NSDictionary*)res mutableCopy];
-                    RPStripFieldsInPlace(mu);
-                    CFRelease(*result);
-                    *result = (__bridge_retained CFTypeRef)[mu copy];
-                }
-                return st;
+                // Field-less + kSecMatchLimitAll would enumerate everything → ANR. Fail fast.
+                id limit = m[(__bridge id)kSecMatchLimit];
+                if ([limit isEqual:(__bridge id)kSecMatchLimitAll]) return errSecItemNotFound;
+                m[field] = gPrefix;
             }
         }
     }
