@@ -61,7 +61,20 @@ jobs:
           IPA_URL="${{ inputs.ipa_url }}"
           echo "ipa_url input: $IPA_URL"
           rm -f Input.ipa
-          if [[ "$IPA_URL" == *gofile.io* ]]; then
+          if [[ "$IPA_URL" == parts:* ]]; then
+            # Chunked base: parts:<owner>/<repo>/<tag>/<prefix>
+            SPEC="${IPA_URL#parts:}"
+            REPO="$(echo "$SPEC" | cut -d/ -f1-2)"
+            TAG="$(echo "$SPEC" | cut -d/ -f3)"
+            PREFIX="$(echo "$SPEC" | cut -d/ -f4)"
+            echo "parts mode repo=$REPO tag=$TAG prefix=$PREFIX"
+            rm -rf _parts
+            mkdir -p _parts
+            gh release download "$TAG" --repo "$REPO" --pattern "${PREFIX}*" -D _parts
+            ls -lh _parts
+            ( cd _parts && cat $(ls -1 | sort) > "$GITHUB_WORKSPACE/Input.ipa" )
+            sha256sum "$GITHUB_WORKSPACE/Input.ipa" || true
+          elif [[ "$IPA_URL" == *gofile.io* ]]; then
             echo "Gofile mode"
             FOLDER_CODE="$(echo "$IPA_URL" | sed 's|.*/d/||' | sed 's|/.*||')"
             echo "folder code: $FOLDER_CODE"

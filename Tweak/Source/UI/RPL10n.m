@@ -32,6 +32,10 @@ static NSDictionary *RPL10nTable(void){
         @"common.delete":@{@"fr":FR(@"Supprimer"),@"en":@"Delete"},
         @"common.auto":@{@"fr":FR(@"Automatique (système)"),@"en":@"Automatic (system)"},
         @"panel.auto":@{@"fr":FR(@"Automatique (système)"),@"en":@"Automatic (system)"},
+        @"safe.title":@{@"fr":FR(@"Mode sans échec"),@"en":@"Safe mode"},
+        @"safe.msg":@{@"fr":FR(@"Un réglage a fait planter l'app 3 fois de suite. Les tweaks ont été désactivés, tes réglages sont conservés."),@"en":@"A setting crashed the app 3 times in a row. Tweaks were disabled, your settings are kept."},
+        @"safe.reenable":@{@"fr":FR(@"Réactiver"),@"en":@"Re-enable"},
+        @"safe.keep":@{@"fr":FR(@"Laisser désactivé"),@"en":@"Keep disabled"},
     };});
     return t;
 }

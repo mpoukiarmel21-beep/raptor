@@ -15,7 +15,7 @@ raptor_FILES = \
   Source/Spoof/RPDeviceIdentity.m Source/Spoof/RPDeviceSpoof.m Source/Spoof/RPLocaleSpoof.m Source/Spoof/RPLocationSpoof.m Source/Spoof/RPGeoIdentity.m \
   Source/Camera/RPCameraFeed.m Source/Camera/RPCameraHook.m \
   Source/UI/RPTheme.m Source/UI/RPGlass.m Source/UI/RPL10n.m Source/UI/RPActionSheet.m Source/UI/RPFloatingButton.m Source/UI/RPListPickerVC.m Source/UI/RPPanelVC.m Source/UI/RPCreateVC.m Source/UI/RPMapPickerVC.m \
-  Source/Util/RPAppRelaunch.m Source/Util/RPDiagnostics.m \
+  Source/Util/RPAppRelaunch.m Source/Util/RPDiagnostics.m Source/Util/RPLaunchGuard.m \
   Source/vendor/fishhook/fishhook.c
 
 raptor_CFLAGS = -fobjc-arc -ISource -ISource/Core -ISource/Isolation -ISource/Hardening -ISource/Spoof -ISource/Camera -ISource/UI -ISource/Util -ISource/vendor -ISource/vendor/fishhook \

@@ -25,6 +25,7 @@
 #import "Spoof/RPGeoIdentity.h"
 #import "Camera/RPCameraHook.h"
 #import "Util/RPDiagnostics.h"
+#import "Util/RPLaunchGuard.h"
 #import "UI/RPFloatingButton.h"
 
 // ── Crash logger (async-signal-safe) ───────────────────────────────
@@ -157,6 +158,7 @@ static void RPBootstrap(void) {
         [RPPaths captureRealHome];
         [RPDeviceIdentity captureRealChip];
         RPInstallCrashLogger();
+        [RPLaunchGuard noteLaunchBegin];
 
         // 2) Always-on anti-detection (works even in Default container)
         [RPJailbreakBypass install];
@@ -171,6 +173,9 @@ static void RPBootstrap(void) {
         gBootCID = [active.cid copy];
         RPLog(@"RAPTOR load — active=%@ (%@) chip=%@", active.name, active.cid, [RPDeviceIdentity realChipFamily]);
 
+        // Safe mode (3 consecutive launch crashes) skips every risky stage but keeps all settings.
+        if (![RPLaunchGuard shouldRunRiskyStages]) { RPLog(@"SAFE MODE — isolation/spoof/hardening skipped"); }
+        else {
         // 4) isolation atomique 4-piliers
         BOOL isolated = NO;
         if (!active.isDefault) {
@@ -210,8 +215,10 @@ static void RPBootstrap(void) {
 
         [RPCameraHook installGlobal];
         [RPLocationSpoof install];
+        }
 
         RPScheduleFloatingButton();
         RPInstallStaleGuard();
+        [RPLaunchGuard install];
     }
 }
