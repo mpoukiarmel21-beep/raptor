@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,11 +121,10 @@ jobs:
           echo "app=$APP bin=$BIN"
           mkdir -p "$APP/Frameworks"
           cp "$GITHUB_WORKSPACE/$DYLIB" "$APP/Frameworks/raptor.dylib"
-          insert_dylib --strip-codesig --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
+          insert_dylib --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
           otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
           for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
           codesign --force --sign - "$BIN"
-          codesign --verify --verbose "$BIN" 2>&1 | tail -n 20 || true
           zip -r -X -q "$GITHUB_WORKSPACE/raptor.ipa" Payload/ -x '*.DS_Store'
 
       - name: Upload IPA (artifact)
