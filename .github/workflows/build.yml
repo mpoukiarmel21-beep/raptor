@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-14
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
           echo "app=$APP bin=$BIN"
           mkdir -p "$APP/Frameworks"
           cp "$GITHUB_WORKSPACE/$DYLIB" "$APP/Frameworks/raptor.dylib"
-          insert_dylib --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
+          yololib "$BIN" "@executable_path/Frameworks/raptor.dylib"
           otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
           for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
           codesign --force --sign - "$BIN"
