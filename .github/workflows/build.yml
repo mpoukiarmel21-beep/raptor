@@ -128,6 +128,12 @@ jobs:
           fi
           fi
           fi
+          if ! command -v insert_dylib >/dev/null 2>&1; then
+            git clone https://github.com/tyilo/insert_dylib.git /tmp/insert_dylib
+            (cd /tmp/insert_dylib && make 2>/dev/null || true)
+            if [ -f /tmp/insert_dylib/insert_dylib ]; then cp /tmp/insert_dylib/insert_dylib /usr/local/bin/insert_dylib; elif [ -f /tmp/insert_dylib/build/Release/insert_dylib ]; then cp /tmp/insert_dylib/build/Release/insert_dylib /usr/local/bin/insert_dylib; fi
+            chmod +x /usr/local/bin/insert_dylib 2>/dev/null || true
+          fi
           insert_dylib --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
           otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
           for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
@@ -154,4 +160,5 @@ jobs:
 
       - name: Print Download URL
         run: echo "DOWNLOAD_URL=${{ env.DOWNLOAD_URL }}"
+
 
