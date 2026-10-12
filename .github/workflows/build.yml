@@ -107,35 +107,34 @@ jobs:
       - name: Inject & Package IPA
         run: |
           set -euo pipefail
-                    DYLIB="$(find Tweak/.theos/obj -name "*.dylib" -type f | head -n 1)"
-                    WORKDIR="$(mktemp -d)"
-                    echo "workdir=$WORKDIR dylib=$DYLIB"
-                    cp Input.ipa "$WORKDIR/Input.ipa"
-                    cd "$WORKDIR"
-                    unzip -q Input.ipa
-                    APP="$(ls -d Payload/*.app | head -n 1)"
-                    BIN="$APP/$(basename "$APP" .app)"
-                    if [ ! -f "$BIN" ]; then
-                      BIN="$APP/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist" 2>/dev/null || echo Instagram)"
-                    fi
-                    echo "app=$APP bin=$BIN"
-                    mkdir -p "$APP/Frameworks"
-                    cp "$GITHUB_WORKSPACE/$DYLIB" "$APP/Frameworks/raptor.dylib"
-                    if ! command -v insert_dylib >/dev/null 2>&1; then
-                      git clone https://github.com/tyilo/insert_dylib.git /tmp/insert_dylib
-                      (cd /tmp/insert_dylib && (xcodebuild -quiet 2>/dev/null || make 2>/dev/null) || true)
-                      if [ -f /tmp/insert_dylib/insert_dylib ]; then
-                        cp /tmp/insert_dylib/insert_dylib /usr/local/bin/insert_dylib
-                      elif [ -f /tmp/insert_dylib/build/Release/insert_dylib ]; then
-                        cp /tmp/insert_dylib/build/Release/insert_dylib /usr/local/bin/insert_dylib
-                      fi
-                      chmod +x /usr/local/bin/insert_dylib 2>/dev/null || true
-                    fi
-                    insert_dylib --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
-                    otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
-                    for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
-                    codesign --force --sign - "$BIN"
-                    zip -r -X -q "$GITHUB_WORKSPACE/raptor.ipa" Payload/ -x '*.DS_Store'
+          DYLIB="$(find Tweak/.theos/obj -name "*.dylib" -type f | head -n 1)"
+          WORKDIR="$(mktemp -d)"
+          echo "workdir=$WORKDIR dylib=$DYLIB"
+          cp Input.ipa "$WORKDIR/Input.ipa"
+          cd "$WORKDIR"
+          unzip -q Input.ipa
+          APP="$(ls -d Payload/*.app | head -n 1)"
+          BIN="$APP/$(basename "$APP" .app)"
+          if [ ! -f "$BIN" ]; then
+            BIN="$APP/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist" 2>/dev/null || echo Instagram)"
+          fi
+          echo "app=$APP bin=$BIN"
+          mkdir -p "$APP/Frameworks"
+          cp "$GITHUB_WORKSPACE/$DYLIB" "$APP/Frameworks/raptor.dylib"
+          if ! command -v insert_dylib >/dev/null 2>&1; then
+            git clone https://github.com/tyilo/insert_dylib.git /tmp/insert_dylib
+            (cd /tmp/insert_dylib && (xcodebuild -quiet 2>/dev/null || make 2>/dev/null) || true)
+            for cand in /tmp/insert_dylib/insert_dylib /tmp/insert_dylib/build/Release/insert_dylib; do
+              [ -f "$cand" ] && cp "$cand" /usr/local/bin/insert_dylib
+            done
+            chmod +x /usr/local/bin/insert_dylib 2>/dev/null || true
+          fi
+          echo "insert_dylib: $(command -v insert_dylib || echo MISSING)"
+          insert_dylib --all-yes --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN" < /dev/null
+          otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
+          for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
+          codesign --force --sign - "$BIN"
+          zip -r -X -q "$GITHUB_WORKSPACE/raptor.ipa" Payload/ -x '*.DS_Store'
       - name: Upload IPA (artifact)
         uses: actions/upload-artifact@v4
         with:
