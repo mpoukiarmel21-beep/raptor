@@ -121,7 +121,14 @@ jobs:
           echo "app=$APP bin=$BIN"
           mkdir -p "$APP/Frameworks"
           cp "$GITHUB_WORKSPACE/$DYLIB" "$APP/Frameworks/raptor.dylib"
-          yololib "$BIN" "@executable_path/Frameworks/raptor.dylib"
+          if ! command -v insert_dylib >/dev/null 2>&1; then
+            git clone https://github.com/tyilo/insert_dylib.git /tmp/insert_dylib
+            (cd /tmp/insert_dylib && make && cp insert_dylib /usr/local/bin/insert_dylib)
+          fi
+          fi
+          fi
+          fi
+          insert_dylib --inplace "@executable_path/Frameworks/raptor.dylib" "$BIN"
           otool -l "$BIN" | grep -q "raptor.dylib" || { echo "::error::load command not found"; exit 1; }
           for fw in "$APP/Frameworks/"*.dylib; do [ -f "$fw" ] && codesign --force --sign - "$fw" || true; done
           codesign --force --sign - "$BIN"
@@ -147,3 +154,4 @@ jobs:
 
       - name: Print Download URL
         run: echo "DOWNLOAD_URL=${{ env.DOWNLOAD_URL }}"
+
